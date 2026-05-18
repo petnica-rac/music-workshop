@@ -1,7 +1,6 @@
 /*
-	---------------------------
-	sintisajzer sa efektima!!!!
-
+---------------------------
+sintisajzer sa efektima!!!!
 ---------------------------
 */
 package main
@@ -44,7 +43,7 @@ func main() {
 	BuildMidiFreqTable()
 
 	// po defaultu zvuk je klavir
-	//sound := "piano"
+	// sound := "piano"
 
 	inPorts := midi.GetInPorts()
 
@@ -64,8 +63,9 @@ func main() {
 			if velocity == 0 {
 				fmt.Printf("Nota: %d\n", note)
 			} else {
+				// TODO: dodati podrsku za efekte
 				//go playTone(otoCtx, midiFreqTable[note], 1, 1000*time.Millisecond, sound)
-				go playSong(otoCtx)
+				go play(otoCtx)
 			}
 		}
 	})
@@ -162,7 +162,7 @@ func (o *oscillator) Read(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-func playSong(otoCtx *oto.Context) {
+func play(otoCtx *oto.Context) {
 
 	const (
 		Sixteenth  = 120 * time.Millisecond

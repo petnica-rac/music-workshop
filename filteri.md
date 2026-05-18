@@ -85,7 +85,7 @@ Ne čuješ:  300 Hz  i   50 Hz  ← nestaju
 
 Ovo je razlog zašto zvuči robotski i metalno — nijedan od originalnih tonova više ne postoji u signalu. Čuješ nešto što nisi poslao unutra.
 
-Daleci iz Doctor Who su ring modulator na ljudskom glasu. Daft Punk su ga koristili za vokale na "Da Funk". Rezultat uvek ima tu hladnoću koja ne pripada nijednom prirodnom instrumentu.
+Daft Punk su koristili ring modulator za vokale na "Da Funk". Rezultat uvek ima tu hladnoću koja ne pripada nijednom prirodnom instrumentu.
 
 ---
 
