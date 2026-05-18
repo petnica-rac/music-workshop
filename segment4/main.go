@@ -84,14 +84,6 @@ func (o *oscillator) Read(p []byte) (n int, err error) {
 		case "sine":
 			v = math.Sin(2 * math.Pi * o.freq * float64(o.sample) / float64(sampleRate))
 		case "piano":
-			v = math.Sin(2*math.Pi*o.freq*tStamp) +
-				0.5*math.Sin(2*2*math.Pi*o.freq*tStamp) +
-				0.25*math.Sin(3*2*math.Pi*o.freq*tStamp) +
-				0.125*math.Sin(4*2*math.Pi*o.freq*tStamp) +
-				0.06*math.Sin(5*2*math.Pi*o.freq*tStamp)
-			v /= 1.93
-			amp := math.Exp(-3 * tStamp)
-			v *= amp
 		case "square":
 		case "distortion":
 		default:

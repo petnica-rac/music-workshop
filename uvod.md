@@ -20,11 +20,14 @@
 - Jedan ton iako se aplituda menja
 - Sabiranje
 
+ ![Fizika zvuka](wave.png)
+
 ## Boja zvuka
 - Ista amplituda i frekvencija a drugačiji zvuk
 - Harmonici
 - Moduliranje talasa
 - Veštački zvuk (sintisajzer)
+- Vizualizacija u virtualnom oscilloscopu - WaveForms
 
 ##  Zvuk klavira?
 https://www.youtube.com/watch?v=ogFAHvYatWs&t=254s
@@ -37,7 +40,7 @@ https://www.youtube.com/watch?v=ogFAHvYatWs&t=254s
 - Membrana zvučnika vibrira f puta u sekundi
 - Oscilator - matematička funkcija koja se ponavlja - krug koji se vrti i generiše vrednosti
 - Bafer - mali paket u kom šaljemo brojeve zvučnoj kartici
-- Zvučna kartica ih menja u U za zvučnike
+- Zvučna kartica ih pretvara u U za zvučnike
 - Tvoje uho to registruje kao ton
 ---
 ## GO
@@ -65,5 +68,4 @@ https://www.youtube.com/watch?v=ogFAHvYatWs&t=254s
 
 ## Kucanjeeeeeeee
 
-- Vizualizacija u virtualnom oscilloscopu - WaveForms
 - Teorija miksinga - sprečavanje clippinga
