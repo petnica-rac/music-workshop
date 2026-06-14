@@ -59,7 +59,7 @@ Frekvencija sporog oscilatora određuje karakter:
 | 1–3 Hz | Opersko, sporo vibrato |
 | 5–8 Hz | Klasično — gitara, violina |
 | 20–50 Hz | Tremolo, nestabilno |
-| 80+ Hz | Više nije vibrato — to je FM sinteza, potpuno novi timbar |
+| 80+ Hz | Više nije vibrato — to je FM sinteza, potpuno novi zvuk |
 
 Taj poslednji slučaj je posebno zanimljiv. Isti kod, samo brži broj, i dobijaš zvuk koji nema nikakve veze sa originalnim tonom. FM sinteza je osnova DX7 synthesizera iz 80ih — zvuk koji čuješ u skoro svakoj pop pesmi te decenije.
 
@@ -209,7 +209,7 @@ Razlika između tipova reverba je samo u parametrima te raspodele:
 | Spring | 0.5–2s | Opružni reverb, gitarsko pojačalo, vintage |
 | Plate | 0.5–2s | Studio klasik, glatki reverb |
 
-Bez reverba zvuk je "suv" — čuješ izvor tona bez konteksta. Sa reverberacijom zvuk se smešta u prostor. Mozak automatski čita te refleksije i konstruiše osećaj veličine prostorije.
+Bez reverba zvuk je "suv" — čuješ izvor tona bez konteksta. Sa reverberreverb-omacijom zvuk se smešta u prostor. Mozak automatski čita te refleksije i konstruiše osećaj veličine prostorije.
 
 ---
 
@@ -224,7 +224,7 @@ Instrument → EQ → Distorzija → Chorus → Delay → Reverb → Izlaz
 Distorzija pre reverba: distorzuješ čist signal, reverb ozvučava rezultat.  
 Reverb pre distorzije: distorzuješ reverb zajedno sa signalom — muljavo, haotično, ponekad odlično.
 
-Nema pogrešnog redosleda. Ima samo različitih zvukova.
+Nema pogrešnog redosleda. Samo treba eksperimentisati sa zvukovima:)
 
 ---
 
@@ -232,14 +232,13 @@ Nema pogrešnog redosleda. Ima samo različitih zvukova.
 
 Promeni jedan parametar u jednom efektu i zapamti šta se desilo:
 
-- Vibratu ubrzaj LFO sa `6` na `80` Hz i posluša kako vibrato postaje FM sinteza
+- Vibratu ubrzaj LFO sa `6` na `80` Hz
 - Distorziji spusti limit na `0.05` i vidi gde nestaje tonski identitet
 - Ring modulatoru postavi modulator na istu frekvenciju kao carrier — šta izlazi?
 - ADSR-u postavi attack na `2000ms` i isti ton postaje pad umesto nota
-- Delay sinhronizuj sa tempom: ako je 120 BPM, jedan takt = 500ms
 
 ---
 
 *Srećno sa sintisajzovanjem:)*
 
-*P.S. ako vam se ovo svidja bacite pogled na programski jezik ChucK*
+*P.S. ako vam se ovo sviđa bacite pogled na programski jezik ChucK*

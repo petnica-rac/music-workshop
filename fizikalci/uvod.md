@@ -1,4 +1,4 @@
-# Muzika u Golangu
+# Muzika na struju
 
 ## Uvod
 
@@ -10,6 +10,8 @@
 - Kako se proizvodi zvuk u računaru
 - Analiza zvuka
 - Matematika, računarstvo, slike i muzika?
+- Kako je RLC kolo zapravo filter?
+- Kako menjamo zvuk?
 
 ---
 
@@ -66,6 +68,6 @@ https://www.youtube.com/watch?v=ogFAHvYatWs&t=254s
 
 ----
 
-## Kucanjeeeeeeee
+A sad malo vašeg omiljenog...
 
-- Teorija miksinga - sprečavanje clippinga
+...programiranja;)

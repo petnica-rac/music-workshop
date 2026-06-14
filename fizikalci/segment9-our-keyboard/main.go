@@ -42,6 +42,7 @@ func main() {
 	fmt.Println("│    E2  (40) → High Pass                              │")
 	fmt.Println("│                                                      │")
 	fmt.Println("│  EFFECT KEYS (highest octave — silent triggers):     │")
+	fmt.Println("│    F6  (89) → Surprise!!!                            │")
 	fmt.Println("│    G6  (91) → Square Wave                            │")
 	fmt.Println("│    A6  (93) → Sine  Wave                             │")
 	fmt.Println("│    H6  (95) → Distortion	                       │")
