@@ -1,4 +1,4 @@
-# Petnica Music Workshop
+# Petnica Music Workshop - Muzika na struju
 
 ## Prerequisites & Installation
 
@@ -23,13 +23,21 @@ Navigate into the project directory:
 cd music-workshop
 ```
 
+---
+
 
 Run the main workshop entry point from the correct directory:
 
 ```bash
+go mod init <name>
 go run main.go
 ```
 or, if in the project dir
 ```bash
 go run ./segmentN/main.go
+```
+
+Run go mod tidy frequently to cleanly synchronize your go.mod and go.sum files with the actual source code imports in your .go files
+```bash
+go mod tidy
 ```

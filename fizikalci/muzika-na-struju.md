@@ -18,43 +18,53 @@ Proći ćemo kroz sve slojeve — od toga šta je zvuk kao fizički talas, kako 
 - Kako se zvuk "iskrivljuje" i oblikuje efektima
 
 ---
+---
 
 # Deo 1 – Fizika zvuka
 
 ## Zvuk = talas
 
-Zvuk je pritisak vazduha koji se periodično menja — molekuli se guraju i razilaze, i taj poremećaj se prostire kroz prostor. Matematički, jedan čist ton je:
+Zvuk je pritisak vazduha koji se periodično menja — molekuli se guraju i razilaze, i taj poremećaj se prostire kroz prostor.
+
+Kod prostog harmonijskog oscilatora ubrzanje je proporcionalno pomeraju i usmereno ka ravnotežnom položaju.
+
+$$ \alpha = -w^2 y $$$
+$$
+\alpha = \frac{d^2y}{dt^2}
+$$
+
+Matematički, jedan čist ton je rešenje ove diferencijalne jednačine:
 
 ```
 y(t) = A · sin(2π · f · t)
 ```
 
-- **A** — amplituda (glasnoća)
-- **f** — frekvencija (visina tona, Hz)
-- **t** — vreme
+- **A** := amplituda (glasnoća)
+- **f** := frekvencija (visina tona, Hz)
+- **t** := vreme
 
-Promena amplitude menja glasnoću, ali ne i visinu tona. Dva tona se sabiraju direktno — superpozicija.
+Promena amplitude menja glasnoću, ali ne i visinu tona. Dva tona se sabiraju direktno - superpozicija.
 
 ![Fizika zvuka](wave.png)
 
 ---
 
-## Boja zvuka — zašto violina nije klavir
+## Boja zvuka - zašto violina nije klavir
 
 Dva instrumenta mogu svirati isti ton iste glasnoće, a potpuno drugačije zvučati. Razlog je **boja zvuka (timbar)** — raspodela harmonika u signalu.
 
 Svaki realni zvuk nije čist sinus. To je zbir sinusa na frekvencijama `f`, `2f`, `3f`, `4f`... (osnovni ton + harmonici). Kako su ti harmonici raspoređeni po amplitudi — to određuje karakter zvuka.
 
-**Primer — zvuk klavira:**
+**Primer - zvuk klavira:**
 https://www.youtube.com/watch?v=ogFAHvYatWs&t=254s
 
 Vizualizacija harmonika u realnom vremenu moguća je u **WaveForms virtualnom osciloskopu**.
 
 ---
 
-## Fourier — svaki zvuk je zbir sinusa
+## Furijeov red - svaki signal je zbir sinusa
 
-Fourierova teorema kaže da se *bilo koji* periodični signal može rastaviti na sume sinusa različitih frekvencija i amplituda. Ovo je temelj analize zvuka — **FFT (Fast Fourier Transform)** to radi u realnom vremenu.
+Furijeova teorema kaže da se bilo koji periodični signal može razložiti na beskonačnu sumu sinusa različitih frekvencija i amplituda. Ovo je temelj analize zvuka — **FFT (Fast Fourier Transform)** to radi u realnom vremenu.
 
 Posebno ilustrativan primer: **kvadratni talas**. Matematički sadrži beskonačno harmonika (3f, 5f, 7f, ...) — i upravo zato zvuči "prljavo" i bogato, ne čisto.
 
@@ -64,6 +74,9 @@ Posebno ilustrativan primer: **kvadratni talas**. Matematički sadrži beskonač
   -1        └──────┘      └──────┘
 ```
 
+![Square wave](sqwave.webp)
+
+---
 ---
 
 # Deo 2 – Fizička realizacija zvuka u računaru
@@ -75,6 +88,8 @@ Računar ne može raditi sa neprekidnim talasom — seče ga na **uzorke (sample
 - **Sample rate** = broj uzoraka u sekundi
 - CD standard: **44100 Hz** → 44100 uzoraka po sekundi
 - Svaki uzorak = trenutna vrednost amplitude, tipično `float32` u opsegu `[-1.0, 1.0]`
+
+![diskretizacija](discretisation.png)
 
 Membrana zvučnika vibrira tačno onoliko puta u sekundi koliko mu govorimo — mi joj šaljemo niz brojeva, ona ih pretvara u fizički pokret.
 
@@ -105,9 +120,9 @@ Koristimo Go i `oto` biblioteku za direktan pristup zvučnoj kartici.
 
 **Ključni koncepti:**
 
-- **Kontekst** — glavni objekat koji pravi konekciju sa drajverom
-- **Plejer** — jedan izvor zvuka unutar konteksta
-- **`Read(p []byte)`** — naš oscilator; `io.Reader` je "ugovor" koji kaže: "svako ko hoće biti izvor zvuka mora implementirati ovu metodu"
+- **Kontekst** := glavni objekat koji pravi konekciju sa drajverom
+- **Plejer** := jedan izvor zvuka unutar konteksta
+- **`Read(p []byte)`** := naš oscilator; `io.Reader` je "ugovor" koji kaže: "svako ko hoće biti izvor zvuka mora implementirati ovu metodu"
 
 ```go
 type Oscillator struct {
@@ -121,32 +136,52 @@ func (o *Oscillator) Read(p []byte) (n int, err error) {
     for i := 0; i+3 < len(p); i += 4 {
         o.phase += 2 * math.Pi * o.frequency / o.sampleRate
         sample := float32(math.Sin(o.phase))
-        bits := math.Float32bits(sample)
-        p[i], p[i+1], p[i+2], p[i+3] = byte(bits), byte(bits>>8), byte(bits>>16), byte(bits>>24)
+
+        bits := math.Float32bits(float32(v))
+		binary.LittleEndian.PutUint32(p[i*4:], bits)
     }
     return len(p), nil
 }
 ```
 
 **Tipovi — zašto tri različita:**
-- `float64` — matematika voli preciznost
-- `float32` — standard za audio (manji memorijski otisak, dovoljna preciznost)
-- `[]byte` — hardver očekuje sirove bajtove
+- `float64` —> matematika voli preciznost
+- `float32` —> standard za audio (manji memorijski otisak, dovoljna preciznost)
+- `[]byte` —> hardver očekuje sirove bajtove
 
-Hardver diktira tempo — zvučna kartica poziva `Read()` kada joj treba više podataka.
+Hardver diktira tempo —> zvučna kartica poziva `Read()` kada joj treba više podataka.
 
 ---
 
 ## Miksovanje i clipping
 
-Više uzoraka se sabira direktno. Problem nastaje kada zbir pređe `[-1.0, 1.0]` — to je **clipping**, iskrivljavanje zbog prekoračenja opsega.
+Više uzoraka se sabira direktno. Problem nastaje kada zbir pređe `[-1.0, 1.0]` - to je **clipping**, iskrivljavanje zbog prekoračenja opsega.
 
-Rešenje — normalizacija:
+Rešenje - normalizacija:
 
 ```go
 mixed := (sample1 + sample2) * 0.5
 ```
 
+---
+
+---
+
+## Akordi 
+
+Akord je samo više sinusa u isto vreme. Odnosi frekvencija su precizni razlomci:
+
+| Akord | Intervali | Karakter |
+|-------|-----------|---------|
+| Dur | 1.0 · 1.25 · 1.5 | Svetao |
+| Mol | 1.0 · 1.20 · 1.5 | Taman |
+| Power chord | 1.0 · 1.5 | Sirov |
+| Diminished | 1.0 · 1.20 · 1.414 | Napetost |
+| Sus4 | 1.0 · 1.333 · 1.5 | Nedovršen, čeka razrešenje |
+
+Sus4 uho doživljava kao pitanje bez odgovora.
+
+---
 ---
 
 # Deo 3 – Filteri: od fizike do koda
@@ -155,7 +190,7 @@ mixed := (sample1 + sample2) * 0.5
 
 Osnovna audio signal je **signal koji se menja u vremenu**. Filter određuje koje frekvencije propušta, a koje blokira.
 
-**Impedansa (Z)** — "otpor" koji komponenta pruža naizmeničnoj struji. Za razliku od otpora, zavisi od frekvencije.
+**Impedansa (Z)** - "otpor" koji komponenta pruža naizmeničnoj struji; zavisi od frekvencije.
 
 ---
 
@@ -179,7 +214,7 @@ $$X_C = \frac{1}{2\pi f C}$$
 - Niske f → ogroman Xc → kondenzator **blokira**
 - Visoke f → mali Xc → kondenzator kratko spaja → **propušta**
 
-**Zašto?** Viša frekvencija znači da se signal brže menja — kondenzator se brže puni i prazni i ne stignie da pruži otpor signalu.
+**Zašto?** Viša frekvencija znači da se signal brže menja → kondenzator se brže puni i prazni i ne stignie da pruži otpor signalu.
 
 ---
 
@@ -193,6 +228,8 @@ $$X_L = 2\pi f L$$
 - Visoke f → ogroman XL → kalem **blokira**
 
 **Zašto?** Brzi signal naglo menja smer/jačinu struje → kalem indukuje suprotnu struju koja se protivi toj promeni *(Lencov zakon)*.
+
+---
 
 Rezonantna frekvencija LC kola:
 
@@ -231,7 +268,7 @@ Kombinacija low-pass i high-pass: uklanja i preniske i previsoke frekvencije, pr
 
 ### RLC diferencijalna jednačina
 
-Analogni RLC krug opisuje se diferencijanom jednačinom:
+Analogno RLC kolo opisuje se diferencijalnom jednačinom:
 
 $$L\frac{d^2i}{dt^2} + R\frac{di}{dt} + \frac{1}{C}i = x(t)$$
 
@@ -253,9 +290,9 @@ Posle ubacivanja i sređivanja dobijamo **rekurzivnu formulu**:
 
 $$y[n] = Ax[n] + By[n-1] + Cy[n-2]$$
 
-- **A** — koliko direktno ulaz utiče
-- **B** — koliko sistem "pamti trenutno stanje" (oscilatornost)
-- **C** — koliko pamti "inerciju kretanja" (stabilnost)
+- **A** := koliko direktno ulaz utiče
+- **B** := koliko sistem "pamti trenutno stanje" (oscilatornost)
+- **C** := koliko pamti "inerciju kretanja" (stabilnost)
 
 ### Digitalni filter — samo računanje
 
@@ -305,8 +342,285 @@ $$\left(\frac{LC}{T^2} + \frac{RC}{T} + 1\right)y[n] = \frac{RC}{T}\bigl(x[n] - 
 $$\boxed{y[n] = 0{,}02206\,(x[n] - x[n-1]) + 1{,}9691 \cdot y[n-1] - 0{,}9725 \cdot y[n-2]}$$
 
 ---
+---
 
-# Deo 4 – Audio efekti: matematika iskrivljenja
+# Deo 4 – MIDI: jezik između muzičara i mašine
+
+## Šta je MIDI
+
+**MIDI (Musical Instrument Digital Interface)** nije zvuk — to je protokol poruka.
+
+Kada pritisneš tipku na klavijaturi, ona ne šalje audio signal. Šalje kratku binarnu poruku:
+
+```
+Nota 69, pritisak 80, ON
+```
+
+Računar (ili vaš synth) prima tu poruku i odlučuje kako da je pretvori u zvuk. Isti MIDI signal može da pokrene grand klavir, električni bas ili robotski zvuk - sve zavisi od toga ko ga prima i interpretira.
+
+Ovo je ključna razlika: **MIDI opisuje šta se svira, ne kako zvuči.**
+
+---
+
+## Anatomija MIDI poruke
+
+Svaka MIDI nota nosi tri informacije:
+
+| Polje | Vrednost | Opis |
+|-------|----------|------|
+| Status | `0x90` | "Note On" na kanalu 1 |
+| Nota | 0 – 127 | Koji ton (broj) |
+| Velocity | 0 – 127 | Koliko jako je pritisnuta tipka |
+
+Postoji 128 MIDI nota, numerisanih od 0 do 127. Srednja C (C4) je nota broj **60**.
+
+```
+Nota  0  → najdublji ton (C-1, ispod opsega čujnosti)
+Nota 60  → srednje C (C4)
+Nota 69  → A4 = kamertonski 440 Hz
+Nota 127 → najviši ton (G9)
+```
+
+Razmak između dva susedna broja je uvek jedan **polustepen** (poluton, semitone).
+
+---
+
+
+## Kratka istorija skale —> zašto 12 tonova?
+ 
+Pre nego što dođemo do formule, vredi razumeti odakle uopšte dolazi sistem od 12 polustepena.
+ 
+### Pitagorejska ugađanja - čisti odnosi
+ 
+Stari Grci su primetili da određeni odnosi frekvencija zvuče "harmonično":
+ 
+| Interval | Odnos frekvencija | Primer |
+|----------|-------------------|--------|
+| Oktava | 2 : 1 | 440 Hz → 880 Hz |
+| Kvinta | 3 : 2 | 440 Hz → 660 Hz |
+| Kvarta | 4 : 3 | 440 Hz → 587 Hz |
+ 
+Pitagora je pokušao da izgradi celu skalu koristeći samo čiste kvinte (odnos 3:2). Kreneš od C, ideš 12 kvinti gore, i trebalo bi da se vratiš na isto C, samo 7 oktava više.
+ 
+Problem: ne vratiš se tačno.
+ 
+```
+12 čistih kvinti: (3/2)^12 = 129,746...
+7 oktava:          2^7     = 128,000...
+```
+ 
+Razlika se zove **Pitagorejska koma** - mali ali čujni nesklad koji uništava harmoniju kada pokušaš da svirаš u više tonaliteta na istom instrumentu.
+ 
+### Ravnomerno temperovanje - matematički kompromis
+ 
+Rešenje koje danas koristimo svuda, **ravnomerno temperovano ugađanje** (*equal temperament*), formalizovano je krajem 18. veka. Ideja je elegantna: podeli oktavu na 12 **matematički jednakih** delova.
+ 
+Jedini čisti interval koji ostaje je oktava (2:1). Sve ostalo je blago iskrivljeno u odnosu na čiste odnose, ali ravnomerno i čujno prihvatljivo.
+ 
+| Interval | Čisti odnos | Equal temperament | Razlika |
+|----------|-------------|-------------------|---------|
+| Kvinta | 1,5000 | 1,4983 | ≈ −2 centa |
+| Velika terca | 1,2500 | 1,2599 | ≈ +14 centa |
+| Mala terca | 1,2000 | 1,1892 | ≈ −16 centa |
+ 
+*Cent je jedna stotinka polustepena — minimalna merljiva razlika visine tona za prosečno uho.*
+ 
+Cena kompromisa: nijedan interval osim oktave nije savršeno čist. Prednost: možeš svirati u svakom tonalitetu na istom klaviru, bez potrebe za ponovnim ugađanjem.
+ 
+Upravo ovaj sistem je kodiran u MIDI-ju i u formuli koja sledi.
+ 
+---
+ 
+## Od MIDI broja do frekvencije
+ 
+Ovo je formula koja pretvara MIDI broj u frekvenciju:
+ 
+$$\boxed{f(n) = 440 \cdot 2^{\frac{n - 69}{12}}}$$
+ 
+**Zašto ovako?**
+ 
+Polazimo od note 69 = A4 = **440 Hz**. To je međunarodni standard, po toj frekvenciji se štimuju orkestri.
+ 
+Svaka oktava gore **duplira** frekvenciju:
+- A4 = 440 Hz
+- A5 = 880 Hz
+- A3 = 220 Hz
+U jednoj oktavi ima tačno **12 polustepena**. Svaki sledeći poluton množi frekvenciju sa istim faktorom `r`, i posle 12 koraka mora biti duplo:
+ 
+$$r^{12} = 2 \implies r = 2^{\frac{1}{12}} \approx 1{,}05946$$
+ 
+Ako od note 69 idemo `(n − 69)` koraka, frekvencija se menja eksponencijalno:
+ 
+$$f(n) = 440 \cdot \left(2^{\frac{1}{12}}\right)^{n-69} = 440 \cdot 2^{\frac{n-69}{12}}$$
+ 
+---
+ 
+## Nekoliko primera
+ 
+| MIDI nota | Naziv | Frekvencija |
+|-----------|-------|-------------|
+| 57 | A3 | 220,00 Hz |
+| 60 | C4 (srednje C) | 261,63 Hz |
+| 64 | E4 | 329,63 Hz |
+| 67 | G4 | 392,00 Hz |
+| 69 | A4 | 440,00 Hz |
+| 72 | C5 | 523,25 Hz |
+| 81 | A5 | 880,00 Hz |
+ 
+---
+ 
+## Implementacija u Go
+ 
+Umesto da računamo formulu svaki put, gradimo tabelu unapred — 128 množenja jednom pri startu, a onda samo lookup po indeksu tokom sviranja:
+ 
+```go
+var midiFreqTable [128]float64
+ 
+func BuildMidiFreqTable() {
+    for i := 0; i < 128; i++ {
+        midiFreqTable[i] = 440.0 * math.Pow(2.0, float64(i-69)/12.0)
+    }
+}
+```
+ 
+`math.Pow` je skupa operacija — logaritamska eksponencijacija pod haubom. U audio petlji koja se poziva 44100 puta u sekundi, svako kašnjenje se oseća. Tabela to rešava: računaš jednom, koristiš uvek.
+ 
+---
+ 
+## Primanje MIDI poruka — gomidi biblioteka
+ 
+Koristimo `gitlab.com/gomidi/midi/v2` sa `rtmididrv` drajverom:
+ 
+```go
+package main
+ 
+import (
+    "fmt"
+    "math"
+    "time"
+ 
+    "gitlab.com/gomidi/midi/v2"
+    _ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"
+)
+ 
+var midiFreqTable [128]float64
+ 
+func BuildMidiFreqTable() {
+    for i := 0; i < 128; i++ {
+        midiFreqTable[i] = 440.0 * math.Pow(2.0, float64(i-69)/12.0)
+    }
+}
+ 
+func main() {
+    defer midi.CloseDriver()
+ 
+    BuildMidiFreqTable()
+ 
+    inPorts := midi.GetInPorts()
+    if len(inPorts) == 0 {
+        fmt.Println("Nije pronađena nijedna klavijatura!")
+        return
+    }
+ 
+    in := inPorts[0]
+    fmt.Println("Pritisni dirke na klavijaturi")
+ 
+    _, err := midi.ListenTo(in, func(msg midi.Message, timestampms int32) {
+        var channel, note, velocity uint8
+        ts := int64(uint32(timestampms))
+ 
+        if msg.GetNoteOn(&channel, &note, &velocity) {
+            if velocity == 0 {
+                // velocity 0 na Note On = Note Off — čest slučaj u MIDI protokolu
+                fmt.Printf("[Note OFF] Nota: %d | Freq: %.2f Hz | Vreme: %d ms\n",
+                    note, midiFreqTable[note], ts)
+            } else {
+                fmt.Printf("[Note ON]  Nota: %d | Freq: %.2f Hz | Velocity: %d | Vreme: %d ms\n",
+                    note, midiFreqTable[note], velocity, ts)
+            }
+        }
+    })
+ 
+    if err != nil {
+        fmt.Printf("Greška pri slušanju: %v\n", err)
+        return
+    }
+ 
+    for {
+        time.Sleep(time.Second)
+    }
+}
+```
+ 
+Nekoliko detalja vrednih pažnje:
+ 
+`_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"` — blank import registruje drajver kao side-effect, bez eksplicitnog poziva. Go pattern koji se često sreće sa drajverima i pluginovima.
+ 
+`velocity == 0` na Note On poruci je legitimni Note Off — deo MIDI specifikacije iz 1983. Štedi jedan bajt statusa slanjem iste Note On komande sa nultim velocityjem.
+ 
+`int64(uint32(timestampms))` — timestamp dolazi kao `int32` koji može biti negativan zbog overflow-a, pa eksplicitna konverzija kroz `uint32` ispravlja wraparound.
+
+
+---
+
+## MIDI kanal i velocity
+
+**Kanal** (1–16) omogućava da jedan MIDI kabl nosi 16 nezavisnih instrumenata odjednom. Primer: kanal 1 = klavir, kanal 10 = bubnjevi (10 je rezervisan za perkusije po MIDI standardu).
+
+**Velocity** (0–127) nije samo glasnoća — realni sintetizatori ga koriste i za boju zvuka. Tiho udarena nota na pravom klaviru zvuči mekše, ne samo tiše.
+
+Osnovna upotreba:
+
+```go
+func velocityToAmplitude(velocity int) float64 {
+    return float64(velocity) / 127.0
+}
+```
+
+Sofisticiranija varijanta: kvadratna kriva daje prirodniji osećaj dinamike.
+
+```go
+func velocityToAmplitude(velocity int) float64 {
+    v := float64(velocity) / 127.0
+    return v * v  // kvadratna kriva, prirodniji osećaj
+}
+```
+
+---
+
+## MIDI u kodu — primanje poruka
+
+`rtmidi` je standardna Go biblioteka za rad sa MIDI ulazima:
+
+```go
+import "github.com/xlab/portmidi"
+
+func handleMIDI(msg []byte) {
+    status   := msg[0] & 0xF0  // gornji nibble = tip poruke
+    note     := int(msg[1])
+    velocity := int(msg[2])
+
+    switch status {
+    case 0x90:  // Note On
+        if velocity > 0 {
+            freq := midiToFreq(note)
+            amp  := velocityToAmplitude(velocity)
+            playNote(freq, amp)
+        } else {
+            // velocity 0 na Note On = Note Off (čest slučaj)
+            stopNote(note)
+        }
+    case 0x80:  // Note Off
+        stopNote(note)
+    }
+}
+```
+
+
+---
+---
+
+# Deo 5 – Audio efekti: matematika iskrivljenja
 
 ## Distorzija i kvadratni talas
 
@@ -359,21 +673,6 @@ Ne čuješ:  300 Hz  i   50 Hz  ← nestaju
 
 Originalni tonovi nestaju. Zvuči robotski i hladno — ne pripada nijednom prirodnom instrumentu.
 
----
-
-## Akordi — matematika harmonije
-
-Akord je samo više sinusa u isto vreme. Odnosi frekvencija su precizni razlomci:
-
-| Akord | Intervali | Karakter |
-|-------|-----------|---------|
-| Dur | 1.0 · 1.25 · 1.5 | Svetao |
-| Mol | 1.0 · 1.20 · 1.5 | Taman |
-| Power chord | 1.0 · 1.5 | Sirov |
-| Diminished | 1.0 · 1.20 · 1.414 | Napetost |
-| Sus4 | 1.0 · 1.333 · 1.5 | Nedovršen, čeka razrešenje |
-
-Sus4 uho doživljava kao pitanje bez odgovora.
 
 ---
 
@@ -454,6 +753,7 @@ Distorzija pre reverba: distorzuješ čist signal.
 Reverb pre distorzije: distorzuješ i reverb zajedno — muljavo, haotično, ponekad odlično.
 
 
+---
 ---
 
 *Srećno sa sintisajzovanjem : )*

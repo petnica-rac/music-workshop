@@ -20,12 +20,11 @@ func main() {
 	otoCtx, ready, _ := oto.NewContext(op)
 	<-ready
 
-	for i := 40; i < 100; i++ {
+	for i := 40; i < 110; i++ {
 		freq := 440.0 * math.Exp2((float64(i)-69.0)/12.0)
 		playTone(otoCtx, freq, 1, 300*time.Millisecond)
 		fmt.Printf("Freq: %.2f\n", freq)
 	}
-
 }
 
 func playTone(ctx *oto.Context, freq float64, volume float64, duration time.Duration) {
