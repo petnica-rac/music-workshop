@@ -19,49 +19,12 @@ func main() {
 	otoCtx, ready, _ := oto.NewContext(op)
 	<-ready
 
-	chord := []float64{400.0, 500.0, 600.0}
-	playChord(otoCtx, chord, 0.6, 3*time.Second)
-}
-
-func playChord(ctx *oto.Context, freq []float64, volume float64, duration time.Duration) {
-	osc := &multipleWave{
-		freqs:  freq,
-		sample: 0,
-	}
-	p := ctx.NewPlayer(osc)
-	p.SetVolume(volume)
-	p.Play()
-	time.Sleep(duration)
-	p.Pause()
-}
-
-type multipleWave struct {
-	freqs  []float64
-	sample int
-}
-
-func (m *multipleWave) Read(p []byte) (n int, err error) {
-	for i := 0; i < len(p)/4; i++ {
-
-		v := 0.0
-
-		for _, freq := range m.freqs {
-			v += math.Sin(2 * math.Pi * freq * float64(m.sample) / float64(sampleRate))
-		}
-
-		v /= float64(len(m.freqs))
-
-		m.sample++
-
-		bits := math.Float32bits(float32(v))
-		binary.LittleEndian.PutUint32(p[i*4:], bits)
-	}
-	return len(p), nil
+	playTone(otoCtx, 440.0, 0.6, 3*time.Second)
 }
 
 func playTone(ctx *oto.Context, freq float64, volume float64, duration time.Duration) {
 
-	osc := &sineWave{
+	osc := &sqrWave{
 		freq:   freq,
 		sample: 0,
 	}
@@ -72,14 +35,22 @@ func playTone(ctx *oto.Context, freq float64, volume float64, duration time.Dura
 	p.Pause()
 }
 
-type sineWave struct {
+type sqrWave struct {
 	freq   float64
 	sample int
 }
 
-func (s *sineWave) Read(p []byte) (n int, err error) {
+func (s *sqrWave) Read(p []byte) (n int, err error) {
 	for i := 0; i < len(p)/4; i++ {
+
 		v := math.Sin(2 * math.Pi * s.freq * float64(s.sample) / float64(sampleRate))
+		v += 1.0 / 3.0 * math.Sin(3*2*math.Pi*s.freq*float64(s.sample)/float64(sampleRate))
+		v += 1.0 / 5.0 * math.Sin(5*2*math.Pi*s.freq*float64(s.sample)/float64(sampleRate))
+		v += 1.0 / 7.0 * math.Sin(7*2*math.Pi*s.freq*float64(s.sample)/float64(sampleRate))
+		v += 1.0 / 9.0 * math.Sin(9*2*math.Pi*s.freq*float64(s.sample)/float64(sampleRate))
+
+		v /= 1.7873
+
 		s.sample++
 
 		bits := math.Float32bits(float32(v))

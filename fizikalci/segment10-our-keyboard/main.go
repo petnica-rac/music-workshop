@@ -212,11 +212,11 @@ func (o *oscillator) Read(p []byte) (n int, err error) {
 			v = getPiano(o.freq, tStamp)
 		case "square":
 			v = getSine(o.freq, tStamp)
-			if v >= 0 {
-				v = 1.0
-			} else {
-				v = -1.0
-			}
+			v += 1.0 / 3.0 * getSine(3*o.freq, tStamp)
+			v += 1.0 / 5.0 * getSine(5*o.freq, tStamp)
+			v += 1.0 / 7.0 * getSine(7*o.freq, tStamp)
+			v += 1.0 / 9.0 * getSine(9*o.freq, tStamp)
+			v /= 1.7873
 		case "distortion":
 			v = getPiano(o.freq, tStamp)
 			const gain = 3.0
