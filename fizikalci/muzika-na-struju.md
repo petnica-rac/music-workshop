@@ -66,7 +66,7 @@ Vizualizacija harmonika u realnom vremenu moguća je u **WaveForms virtualnom os
 
 Furijeova teorema kaže da se bilo koji periodični signal može razložiti na beskonačnu sumu sinusa različitih frekvencija i amplituda. Ovo je temelj analize zvuka — **FFT (Fast Fourier Transform)** to radi u realnom vremenu.
 
-Posebno ilustrativan primer: **kvadratni talas**. Matematički sadrži beskonačno harmonika (3f, 5f, 7f, ...) — i upravo zato zvuči "prljavo" i bogato, ne čisto.
+Posebno ilustrativan primer: **kvadratni talas**. Matematički sadrži beskonačno harmonika (3f, 5f, 7f, ...), i upravo zato zvuči "prljavo" i bogato, ne čisto.
 
 ```
   +1  ──────┐      ┌──────┐      ┌──────
@@ -138,7 +138,7 @@ func (o *Oscillator) Read(p []byte) (n int, err error) {
         sample := float32(math.Sin(o.phase))
 
         bits := math.Float32bits(float32(v))
-		binary.LittleEndian.PutUint32(p[i*4:], bits)
+	binary.LittleEndian.PutUint32(p[i*4:], bits)
     }
     return len(p), nil
 }
@@ -483,11 +483,11 @@ func BuildMidiFreqTable() {
 }
 ```
  
-`math.Pow` je skupa operacija — logaritamska eksponencijacija pod haubom. U audio petlji koja se poziva 44100 puta u sekundi, svako kašnjenje se oseća. Tabela to rešava: računaš jednom, koristiš uvek.
+`math.Pow` je skupa operacija. U audio petlji koja se poziva 44100 puta u sekundi, svako kašnjenje se oseća. Tabela to rešava: računaš jednom, koristiš uvek.
  
 ---
  
-## Primanje MIDI poruka — gomidi biblioteka
+## Primanje MIDI poruka —> gomidi biblioteka
  
 Koristimo `gitlab.com/gomidi/midi/v2` sa `rtmididrv` drajverom:
  
@@ -556,7 +556,7 @@ Nekoliko detalja vrednih pažnje:
  
 `_ "gitlab.com/gomidi/midi/v2/drivers/rtmididrv"` — blank import registruje drajver kao side-effect, bez eksplicitnog poziva. Go pattern koji se često sreće sa drajverima i pluginovima.
  
-`velocity == 0` na Note On poruci je legitimni Note Off — deo MIDI specifikacije iz 1983. Štedi jedan bajt statusa slanjem iste Note On komande sa nultim velocityjem.
+`velocity == 0` na Note On poruci je legitimni Note Off —> deo MIDI specifikacije iz 1983. Štedi jedan bajt statusa slanjem iste Note On komande sa nultim velocityjem.
  
 `int64(uint32(timestampms))` — timestamp dolazi kao `int32` koji može biti negativan zbog overflow-a, pa eksplicitna konverzija kroz `uint32` ispravlja wraparound.
 
@@ -586,41 +586,12 @@ func velocityToAmplitude(velocity int) float64 {
 }
 ```
 
----
-
-## MIDI u kodu — primanje poruka
-
-`rtmidi` je standardna Go biblioteka za rad sa MIDI ulazima:
-
-```go
-import "github.com/xlab/portmidi"
-
-func handleMIDI(msg []byte) {
-    status   := msg[0] & 0xF0  // gornji nibble = tip poruke
-    note     := int(msg[1])
-    velocity := int(msg[2])
-
-    switch status {
-    case 0x90:  // Note On
-        if velocity > 0 {
-            freq := midiToFreq(note)
-            amp  := velocityToAmplitude(velocity)
-            playNote(freq, amp)
-        } else {
-            // velocity 0 na Note On = Note Off (čest slučaj)
-            stopNote(note)
-        }
-    case 0x80:  // Note Off
-        stopNote(note)
-    }
-}
-```
 
 
 ---
 ---
 
-# Deo 5 – Audio efekti: matematika iskrivljenja
+# Deo 5 – Audio efekti: matematika manipulacije signalom
 
 ## Distorzija i kvadratni talas
 
@@ -631,7 +602,7 @@ if signal > 0.8 { signal = 0.8 }
 if signal < -0.8 { signal = -0.8 }
 ```
 
-Talas koji je bio glatka kriva sada ima odrezane vrhove. Ekstremni slučaj je kvadratni talas. Fourier kaže da kvadratni talas matematički sadrži beskonačno harmonika (3f, 5f, 7f...) — uho čuje sve to odjednom i percipira "prljavo" bogatstvo koje zovemo distorzijom.
+Talas koji sada ima odrečene "bregove", a ekstremni slučaj je kvadratni talas. Furije kaže da kvadratni talas matematički sadrži beskonačno harmonika (3f, 5f, 7f...). Uho čuje sve to odjednom i percipira "prljav" i bogat zvuk koje zovemo distorzijom.
 
 Smanjivanjem limita dobijamo agresivniji zvuk, na 0.01 skoro potpun kvadratni talas.
 
@@ -650,16 +621,22 @@ f(t) = 440 + sin(2π · 6 · t) × 10
 | LFO frekvencija | Efekat |
 |-----------------|--------|
 | 1–3 Hz | Opersko, sporo vibrato |
-| 5–8 Hz | Klasično — gitara, violina |
+| 5–8 Hz | Klasično - gitara, violina |
 | 20–50 Hz | Tremolo, nestabilno |
-| 80+ Hz | FM sinteza — potpuno novi timbar |
+| 80+ Hz | FM sinteza - potpuno novi timbar |
 
 Taj poslednji slučaj je posebno zanimljiv: isti kod, samo brži broj, i dobijaš zvuk koji nema veze sa originalnim tonom. FM sinteza je osnova DX7 synthesizera iz 80ih.
+
+### FM sinteza
+signla = sin(Nosilac + sin(Modulator))
+- stvara se beskonačno mnogo bočnih frekvencija
 
 ---
 
 ## Ring Modulation
 
+Menja se jačina zvuka (amplituda)
+signal = Nosilac × Modulator
 Množenje dva sinusa razbija oba originalna tona i na izlazu daju samo zbir i razliku:
 
 ```
@@ -671,7 +648,7 @@ modulator =  50 Hz
 Ne čuješ:  300 Hz  i   50 Hz  ← nestaju
 ```
 
-Originalni tonovi nestaju. Zvuči robotski i hladno — ne pripada nijednom prirodnom instrumentu.
+Originalni tonovi nestaju. Zvuči robotski i hladno - ne pripada nijednom prirodnom instrumentu.
 
 
 ---
@@ -721,13 +698,13 @@ CD je 16-bit (65536 nivoa amplitude). Spuštanjem na 4-bit (16 nivoa):
 0.73847281 × 16 = 11.8 → round → 12 → 12/16 = 0.75
 ```
 
-Glatka kriva postaje stepenasta. To je lo-fi estetika — chiptune, vaporwave, GameBoy melodije.
+Glatka kriva postaje stepenasta. To je lo-fi stil.
 
 ---
 
 ## Reverb
 
-Akustika prostorije simulirana u kodu — hiljade kratkih delay-eva sa nasumičnim kašnjenjima:
+Akustika prostorije simulirana u kodu —> hiljade kratkih delay-eva sa nasumičnim kašnjenjima:
 
 $$\text{reverb}(t) = \sum_i \text{signal}(t - \tau_i) \times a_i$$
 
@@ -741,7 +718,7 @@ $$\text{reverb}(t) = \sum_i \text{signal}(t - \tau_i) \times a_i$$
 
 ---
 
-## Signal chain — redosled efekata
+## Signal chain —> redosled efekata
 
 Redosled menja sve:
 
@@ -750,7 +727,7 @@ Instrument → EQ → Distorzija → Chorus → Delay → Reverb → Izlaz
 ```
 
 Distorzija pre reverba: distorzuješ čist signal.
-Reverb pre distorzije: distorzuješ i reverb zajedno — muljavo, haotično, ponekad odlično.
+Reverb pre distorzije: distorzuješ i reverb zajedno —> muljavo, haotično, ponekad odlično.
 
 
 ---
@@ -758,4 +735,4 @@ Reverb pre distorzije: distorzuješ i reverb zajedno — muljavo, haotično, pon
 
 *Srećno sa sintisajzovanjem : )*
 
-*P.S. Ako vam se ovo sviđa, bacite pogled na programski jezik ChucK — jezik dizajniran isključivo za programiranje muzike u realnom vremenu.*
+*P.S. Ako vam se ovo sviđa, bacite pogled na programski jezik ChucK, jezik dizajniran isključivo za programiranje muzike u realnom vremenu* :*
